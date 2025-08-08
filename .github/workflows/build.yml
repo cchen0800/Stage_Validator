@@ -30,29 +30,31 @@ jobs:
           python -m pip install --upgrade pip wheel setuptools
           python -m pip install pyinstaller pandas
 
+      # Windows build
       - name: Build onedir (Windows)
         if: runner.os == 'Windows'
         run: |
           pyinstaller --noconfirm --onedir --windowed --name "EmailStageLabeler" email_stage_labeler.py
-          powershell -command "Compress-Archive -Path dist\\EmailStageLabeler\\* -DestinationPath dist\\EmailStageLabeler-windows.zip"
+          powershell -command "Compress-Archive -Path dist\\* -DestinationPath dist\\EmailStageLabeler-windows.zip"
 
       - name: Upload artifact (Windows)
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: EmailStageLabeler-windows-onedir
+          name: EmailStageLabeler-windows
           path: dist/EmailStageLabeler-windows.zip
 
+      # macOS build
       - name: Build onedir (macOS)
         if: runner.os == 'macOS'
         run: |
           pyinstaller --noconfirm --onedir --windowed --name "Email Stage Labeler" email_stage_labeler.py
           codesign --force --deep --sign - "dist/Email Stage Labeler.app" || true
-          cd dist && zip -r "EmailStageLabeler-macos.zip" "Email Stage Labeler.app"
+          cd dist && zip -r EmailStageLabeler-macos.zip "Email Stage Labeler.app"
 
       - name: Upload artifact (macOS)
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: EmailStageLabeler-macos-onedir
+          name: EmailStageLabeler-macos
           path: dist/EmailStageLabeler-macos.zip
