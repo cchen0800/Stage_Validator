@@ -1,0 +1,58 @@
+name: Build fast desktop apps
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - email_stage_labeler.py
+      - .github/workflows/build.yml
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+        python-version: [3.11]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip wheel setuptools
+          python -m pip install pyinstaller pandas
+
+      - name: Build onedir (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pyinstaller --noconfirm --onedir --windowed --name "EmailStageLabeler" email_stage_labeler.py
+          powershell -command "Compress-Archive -Path dist\\EmailStageLabeler\\* -DestinationPath dist\\EmailStageLabeler-windows.zip"
+
+      - name: Upload artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: EmailStageLabeler-windows-onedir
+          path: dist/EmailStageLabeler-windows.zip
+
+      - name: Build onedir (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          pyinstaller --noconfirm --onedir --windowed --name "Email Stage Labeler" email_stage_labeler.py
+          codesign --force --deep --sign - "dist/Email Stage Labeler.app" || true
+          cd dist && zip -r "EmailStageLabeler-macos.zip" "Email Stage Labeler.app"
+
+      - name: Upload artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: EmailStageLabeler-macos-onedir
+          path: dist/EmailStageLabeler-macos.zip
